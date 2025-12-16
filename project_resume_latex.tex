@@ -1,28 +1,28 @@
 \noindent
-\textbf{高可用分片键值存储系统（Go，MIT 6.5840 分布式系统）} \hfill 2025.06 – 2025.07 \\
-\textbf{项目描述}：实现了一个高可用、可扩展、容错的分片键值存储系统，基于Raft共识协议确保数据一致性与容错性，通过多分片组实现水平扩展，支持动态重配置以应对负载变化，每个键值对具有版本控制，体现CAP定理权衡。项目包含MapReduce框架、Raft共识算法和分片键值存储三个核心模块，共约6,400行Go代码，通过MIT 6.5840课程全部测试用例。\\
+\textbf{高可用分片键值存储系统（Go）} \hfill 2025.06 – 2025.07 \\
+\textbf{项目描述}：实现了一个高可用、可扩展、容错的分片键值存储系统，基于Raft共识协议确保数据一致性与容错性，通过多分片组实现水平扩展，支持动态重配置以应对负载变化，每个键值对具有版本控制，体现CAP定理权衡。项目包含MapReduce框架、Raft共识算法和分片键值存储三个核心模块，共约6,400行Go代码，通过全部功能和压力测试。\\
 
 \textbf{MapReduce分布式计算框架:} 
     \begin{itemize}
-        \item 设计协调者（Coordinator）采用事件驱动架构，通过心跳通道、报告通道和完成通道实现异步RPC通信，利用互斥锁和状态机模式管理Map、Reduce、完成三个阶段的状态转换，确保任务调度的高效性和一致性
-        \item 实现工作者（Worker）采用哈希分区算法（FNV-32）将Map任务输出的键值对分配到多个中间文件，支持并行Reduce任务处理；集成10秒超时检测机制，自动将失败任务重置为空闲状态并重新分配，结合原子文件写入（临时文件+重命名）保证故障恢复时的数据完整性
-        \item 优化数据流水线：Map阶段生成JSON格式中间文件（mr-X-Y），Reduce阶段对同一分区的所有中间文件按键排序后聚合处理，输出最终结果文件（mr-out-Y），通过官方测试验证正确性
+        \item \textbf{事件驱动协调者架构}：设计协调者（Coordinator）采用事件驱动架构，通过心跳通道、报告通道和完成通道实现异步RPC通信，利用互斥锁和状态机模式管理Map、Reduce、完成三个阶段的状态转换，确保任务调度的高效性和一致性。
+        \item \textbf{容错工作者与哈希分区}：实现工作者（Worker）采用哈希分区算法（FNV-32）将Map任务输出的键值对分配到多个中间文件，支持并行Reduce任务处理；集成10秒超时检测机制，自动将失败任务重置为空闲状态并重新分配，结合原子文件写入（临时文件+重命名）保证故障恢复时的数据完整性。
+        \item \textbf{数据流水线优化}：Map阶段生成JSON格式中间文件（mr-X-Y），Reduce阶段对同一分区的所有中间文件按键排序后聚合处理，输出最终结果文件（mr-out-Y），通过全部功能测试验证正确性。
     \end{itemize}
 
 \textbf{Raft共识协议实现:}
     \begin{itemize}
-        \item 领导者选举与任期管理：实现基于随机化选举超时的分布式选举机制，通过独立的选举定时器和心跳定时器协程，配合通道通信实现选举超时触发；采用任期号（Term）递增和投票记录机制，确保每个任期最多选出一个领导者，有效防止选举分裂
-        \item 日志复制与一致性维护：领导者通过AppendEntries RPC实现心跳和日志复制，采用prevLogIndex和prevLogTerm进行一致性检查；实现快速回退优化算法，通过ConflictTerm和ConflictIndex快速定位日志冲突位置，减少RPC往返次数；维护nextIndex和matchIndex数组跟踪每个节点日志复制进度，采用多数派提交规则更新commitIndex
-        \item 日志压缩与快照机制：设计异步快照安装协程，当日志大小达到阈值的90\%时触发快照创建；通过InstallSnapshot RPC将完整快照传输至落后节点；维护lastIncludedIndex和lastIncludedTerm实现日志索引映射，确保快照前后日志索引一致性；快照数据通过Persister原子性持久化，支持崩溃恢复
-        \item 并发控制与状态管理：使用细粒度互斥锁保护共享状态，条件变量（applyCond）协调日志应用线程与Raft主循环；通过独立的applier协程将已提交日志按序应用到状态机，确保线性一致性；成功通过1000+次压力测试，覆盖领导者选举、日志复制、网络分区、节点崩溃恢复等场景
+        \item \textbf{领导者选举与任期管理}：实现基于随机化选举超时的分布式选举机制，通过独立的选举定时器和心跳定时器协程，配合通道通信实现选举超时触发；采用任期号（Term）递增和投票记录机制，确保每个任期最多选出一个领导者，有效防止选举分裂。
+        \item \textbf{日志复制与一致性维护}：领导者通过AppendEntries RPC实现心跳和日志复制，采用prevLogIndex和prevLogTerm进行一致性检查；实现快速回退优化算法，通过ConflictTerm和ConflictIndex快速定位日志冲突位置，减少RPC往返次数；维护nextIndex和matchIndex数组跟踪每个节点日志复制进度，采用多数派提交规则更新commitIndex。
+        \item \textbf{日志压缩与快照机制}：设计异步快照安装协程，当日志大小达到阈值的90\%时触发快照创建；通过InstallSnapshot RPC将完整快照传输至落后节点；维护lastIncludedIndex和lastIncludedTerm实现日志索引映射，确保快照前后日志索引一致性；快照数据通过Persister原子性持久化，支持崩溃恢复。
+        \item \textbf{并发控制与状态管理}：使用细粒度互斥锁保护共享状态，条件变量（applyCond）协调日志应用线程与Raft主循环；通过独立的applier协程将已提交日志按序应用到状态机，确保线性一致性；成功通过1000+次压力测试，覆盖领导者选举、日志复制、网络分区、节点崩溃恢复等场景。
     \end{itemize}
 
 \textbf{分片键值存储系统:}
     \begin{itemize}
-        \item 复制状态机（RSM）架构：构建基于Raft的RSM层封装Get/Put操作，通过Start接口提交操作至Raft日志，利用applyCh异步接收已提交命令；实现操作去重机制（OpId），结合pendingOps映射表和done通道实现请求-响应匹配，确保幂等性和线性一致性；服务器采用每键独立的读写锁（per-key RWMutex）和乐观版本控制（基于递增版本号），最小化并发冲突，提升吞吐量
-        \item 分片管理与状态维护：每个分片组维护ShardInfo数组记录分片配置号、所有权（Owned）和冻结状态（Frozen）；通过shardOwned和shardFrozen检查实现分片访问控制，拒绝不属于本组或处于迁移中的分片请求；支持FreezeShard、InstallShard、DeleteShard三阶段原子分片迁移操作，确保迁移过程中数据一致性和可用性
-        \item 客户端与动态配置：客户端通过ShardCtrler的Query接口获取最新配置，使用Key2Shard哈希函数定位键所属分片，再根据配置查找分片组服务器列表；集成重试机制处理ErrWrongGroup错误，当配置变更时自动更新本地配置并重新定位正确服务器，确保请求最终成功
-        \item 控制器与配置迁移：ShardCtrler采用双配置存储（currentCfg/nextCfg）模式，通过版本化Put操作实现配置原子更新；ChangeConfigTo方法实现配置变更请求的乐观并发控制，通过版本号检查避免冲突；migrateConfig函数协调分片迁移流程，顺序执行Freeze-Install-Delete三阶段操作，支持控制器并发和崩溃恢复；通过官方测试验证分片迁移、并发访问、不稳定网络等场景的正确性
+        \item \textbf{复制状态机（RSM）架构}：构建基于Raft的RSM层封装Get/Put操作，通过Start接口提交操作至Raft日志，利用applyCh异步接收已提交命令；实现操作去重机制（OpId），结合pendingOps映射表和done通道实现请求-响应匹配，确保幂等性和线性一致性；服务器采用每键独立的读写锁（per-key RWMutex）和乐观版本控制（基于递增版本号），最小化并发冲突，提升吞吐量。
+        \item \textbf{分片管理与状态维护}：每个分片组维护ShardInfo数组记录分片配置号、所有权（Owned）和冻结状态（Frozen）；通过shardOwned和shardFrozen检查实现分片访问控制，拒绝不属于本组或处于迁移中的分片请求；支持FreezeShard、InstallShard、DeleteShard三阶段原子分片迁移操作，确保迁移过程中数据一致性和可用性。
+        \item \textbf{客户端与动态配置}：客户端通过ShardCtrler的Query接口获取最新配置，使用Key2Shard哈希函数定位键所属分片，再根据配置查找分片组服务器列表；集成重试机制处理ErrWrongGroup错误，当配置变更时自动更新本地配置并重新定位正确服务器，确保请求最终成功。
+        \item \textbf{控制器与配置迁移}：ShardCtrler采用双配置存储（currentCfg/nextCfg）模式，通过版本化Put操作实现配置原子更新；ChangeConfigTo方法实现配置变更请求的乐观并发控制，通过版本号检查避免冲突；migrateConfig函数协调分片迁移流程，顺序执行Freeze-Install-Delete三阶段操作，支持控制器并发和崩溃恢复；通过全部功能和压力测试验证分片迁移、并发访问、不稳定网络等场景的正确性。
     \end{itemize}
 
 \textbf{技术栈}：Go、Goroutine、Channel、Mutex、RWMutex、Condition Variable、Raft协议、RPC、乐观并发控制、分片、快照、哈希分区、状态机、版本控制

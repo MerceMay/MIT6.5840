@@ -191,8 +191,7 @@ func (rf *Raft) InstallSnapshot(args *InstallSnapshotArgs, reply *InstallSnapsho
 	}
 
 	if args.Term > rf.currentTerm {
-		rf.becomeFollower(args.Term)
-		rf.persist()
+		rf.becomeFollower(args.Term) // becomeFollower already persists state
 	}
 	reply.Term = rf.currentTerm
 
@@ -734,8 +733,7 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
 	}
 
 	if args.Term > rf.currentTerm {
-		rf.becomeFollower(args.Term)
-		rf.persist()
+		rf.becomeFollower(args.Term) // becomeFollower already persists state
 	}
 	rf.resetElectionTimer()
 
